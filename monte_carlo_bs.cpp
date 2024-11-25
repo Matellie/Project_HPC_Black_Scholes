@@ -3,8 +3,8 @@
 #include <random>
 #include <vector>
 #include <chrono>
-//#include <omp.h>
-
+#include <omp.h>
+#include <cstring>
 
 // Parameters
 static double S0 = 100.0;    // Initial stock price
@@ -24,7 +24,8 @@ double monteCarloBlackScholes(
     std::normal_distribution<> dist(0.0, 1.0);
 
     double payoffSum = 0.0;
-
+    
+    #pragma omp parallel for
     for (int i = 0; i < numPaths; ++i) {
         // Simulate one path
         double Z = dist(gen); // Standard normal random variable
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    //omp_set_num_threads(num_threads);
+    omp_set_num_threads(num_threads);
 
     auto start = std::chrono::high_resolution_clock::now();
     double price = monteCarloBlackScholes(S0, K, T, r, sigma, numPaths);
