@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <string>
 
-// Parameters
+// Init Parameters
 static double S0 = 100.0;    // Initial stock price
 static double K = 100.0;     // Strike price
 static double T = 1.0;       // Time to maturity (1 year)
@@ -32,7 +32,7 @@ double monteCarloBlackScholes(
     double dt = T / length_simulation; // Time step
     double payoffSum = 0.0;
 
-    // Initialize paths to plot
+    // Initialize vector for paths to plot
     pathsToPlot.resize(num_paths_to_plot, std::vector<double>(length_simulation + 1, S0));
 
     #pragma omp parallel for reduction(+:payoffSum)
