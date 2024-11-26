@@ -24,10 +24,16 @@ static int nSimulToPlot = 100;     // Number of paths to plot
 // values from the first nSimulToPlot simulations to allow for output to a csv
 // file. For the rest, it will only compute the final value of the simulation
 // (at time T).
-double
-monteCarloBlackScholes(double S0, double K, double T, double r, double sigma,
-                       int nSimul, int lengthSimulation,
-                       std::vector<std::vector<double>> &simulationsToPlot) {
+double monteCarloBlackScholes(
+  double S0,
+  double K,
+  double T,
+  double r,
+  double sigma,
+  int nSimul,
+  int lengthSimulation,
+  std::vector<std::vector<double>> &simulationsToPlot
+) {
   // Random number generation
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -37,8 +43,9 @@ monteCarloBlackScholes(double S0, double K, double T, double r, double sigma,
   double payoffSum = 0.0;           // sum all the payoffs to compute average
 
   // Initialize paths to plot
-  simulationsToPlot.resize(nSimulToPlot,
-                           std::vector<double>(lengthSimulation + 1, S0));
+  simulationsToPlot.resize(
+    nSimulToPlot, std::vector<double>(lengthSimulation + 1, S0)
+  );
 
 #pragma omp parallel for reduction(+ : payoffSum)
   for (int i = 0; i < nSimul; ++i) {
@@ -46,10 +53,10 @@ monteCarloBlackScholes(double S0, double K, double T, double r, double sigma,
     std::vector<double> path(lengthSimulation + 1, S0);
     for (int j = 0; j < lengthSimulation; ++j) {
       double Z = dist(gen); // Standard normal random variable
-      ST *=
-          std::exp((r - 0.5 * sigma * sigma) * dt + sigma * std::sqrt(dt) * Z);
-      if (i < nSimulToPlot)
+      ST *= std::exp((r - 0.5 * sigma * sigma) * dt + sigma * std::sqrt(dt) * Z);
+      if (i < nSimulToPlot) {
         path[j + 1] = ST;
+      }
     }
     if (i < nSimulToPlot) {
 #pragma omp critical
@@ -62,6 +69,7 @@ monteCarloBlackScholes(double S0, double K, double T, double r, double sigma,
   // Discounted average payoff
   return (std::exp(-r * T) * payoffSum) / nSimul;
 }
+
 
 int main(int argc, char **argv) {
 
@@ -87,19 +95,17 @@ int main(int argc, char **argv) {
       nSimulToPlot = atoi(argv[++i]);
     } else if (strcmp(argv[i], "--h") == 0 || strcmp(argv[i], "--help") == 0) {
       std::cout
-          << "Options:\n"
-          << "  --S0 <double>: Initial stock price (default 100.0)\n"
-          << "  --K <double>: Strike price (default 100.0)\n"
-          << "  --T <double>: Time to maturity (default 1.0)\n"
-          << "  --r <double>: Risk-free rate (default 0.05)\n"
-          << "  --sigma <double>: Volatility (default 0.2)\n"
-          << "  --num_threads <int>: Number of threads (default 1)\n"
-          << "  --numSimul <int>: Number of simulation paths (default 1e6)\n"
-          << "  --length_simulation <int>: Number of time intervals (default "
-             "10)\n"
-          << "  --num_paths_to_plot <int>: Number of paths to plot (default "
-             "10)\n"
-          << "  --help (-h): Print this message\n";
+        << "Options:\n"
+        << "  --S0 <double>: Initial stock price (default 100.0)\n"
+        << "  --K <double>: Strike price (default 100.0)\n"
+        << "  --T <double>: Time to maturity (default 1.0)\n"
+        << "  --r <double>: Risk-free rate (default 0.05)\n"
+        << "  --sigma <double>: Volatility (default 0.2)\n"
+        << "  --num_threads <int>: Number of threads (default 1)\n"
+        << "  --numSimul <int>: Number of simulation paths (default 1e6)\n"
+        << "  --length_simulation <int>: Number of time intervals (default 10)\n"
+        << "  --num_paths_to_plot <int>: Number of paths to plot (default 10)\n"
+        << "  --help (-h): Print this message\n";
       return 0;
     }
   }
@@ -108,8 +114,9 @@ int main(int argc, char **argv) {
 
   std::vector<std::vector<double>> simulationsToPlot;
   auto start = std::chrono::high_resolution_clock::now();
-  double price = monteCarloBlackScholes(S0, K, T, r, sigma, nSimul,
-                                        lengthSimulation, simulationsToPlot);
+  double price = monteCarloBlackScholes(
+    S0, K, T, r, sigma, nSimul, lengthSimulation, simulationsToPlot
+  );
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<double> elapsed = end - start;
@@ -119,8 +126,9 @@ int main(int argc, char **argv) {
   // Extract the program name
   std::string commandLine;
   for (int i = 0; i < argc; ++i) {
-    if (!commandLine.empty())
+    if (!commandLine.empty()) {
       commandLine += "_";
+    }
     commandLine += argv[i];
   }
   std::replace(commandLine.begin(), commandLine.end(), ' ', '_');
@@ -131,8 +139,9 @@ int main(int argc, char **argv) {
   for (size_t i = 0; i < simulationsToPlot[0].size(); ++i) {
     for (size_t j = 0; j < simulationsToPlot.size(); ++j) {
       outFile << simulationsToPlot[j][i];
-      if (j < simulationsToPlot.size() - 1)
+      if (j < simulationsToPlot.size() - 1) {
         outFile << ",";
+      }
     }
     outFile << "\n";
   }
