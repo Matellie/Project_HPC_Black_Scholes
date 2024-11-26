@@ -5,3 +5,5 @@ g++ monte_carlo.cpp -o monte_carlo -std=c++11 \
     -I/home/username/miniconda/envs/parallel_comp/lib/python3.12/site-packages/numpy/_core/include \
     -L/home/username/miniconda/envs/parallel_comp/lib \
     -lpython3.12
+
+/usr/local/cuda-12/bin/nvcc rng_gpu_classic.cu -o rng_gpu_classic -arch=sm_86
