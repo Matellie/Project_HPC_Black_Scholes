@@ -47,19 +47,16 @@ __global__ void generate_monte_carlo_bs(
     double drift = (r - 0.5 * sigma * sigma) * dt;
     double diffusion = sigma * sqrt(dt);
 
-    //printf("%lf, %lf\n", drift, diffusion);
-
     for (int i=id; i<nbSim; i+=blockDim.x*gridDim.x) {
         double ST = S0;
         for (int j=0; j<lengthSim; ++j) {
-            double4 r = curand_normal4_double(&localState);
+            double r = curand_normal_double(&localState);
             ST *= exp(drift + diffusion * r);
-            //printf("%d %d %lf\n", i, j, ST);
             state[id] = localState;
         }
-        if(ST > K) {
+        if (ST > K) {
             result[i] = ST;
-        }else{
+        } else {
             result[i] = 0;
         }
     }
@@ -92,12 +89,8 @@ double monteCarloBlackScholes(
 
     cudaMalloc(&result_gpu, nb_sim * sizeof(double));
 
-    /*cudaError_t err = cudaGetLastError();
-    printf("%s\n", cudaGetErrorString(err));*/
-
     auto now = std::chrono::high_resolution_clock::now();
     long int nanos = (long int)std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-    //printf("Time: %ld\n", nanos);
 
     auto start = std::chrono::high_resolution_clock::now();
     setup_kernel<<<blockCount, threadsPerBlock>>>(devPHILOXStates, nanos);
@@ -117,14 +110,6 @@ double monteCarloBlackScholes(
     double sum = std::accumulate(result_cpu, result_cpu + nb_sim, 0.0);
     double mean = sum / nb_sim;
     printf("Mean computed\n");
-
-    /*err = cudaGetLastError();
-    printf("%s\n", cudaGetErrorString(err));*/
-
-    /*for(int i=0; i<nb_sim; ++i) {
-        printf("%lf ", result_cpu[i]);
-    }
-    printf("\n");*/
 
     return mean;
 }
@@ -171,7 +156,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::vector<std::vector<double>> simulationsToPlot;
     auto start = std::chrono::high_resolution_clock::now();
     double price = monteCarloBlackScholes(
         S0, K, T, r, sigma, nbSim, lengthSim
@@ -181,32 +165,6 @@ int main(int argc, char **argv) {
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Option Price: " << price << std::endl;
     std::cout << "Elapsed Time: " << elapsed.count() << " seconds" << std::endl;
-
-    /* Extract the program name
-    std::string commandLine;
-    for (int i = 0; i < argc; ++i) {
-        if (!commandLine.empty()) {
-            commandLine += "_";
-        }
-        commandLine += argv[i];
-    }
-    std::replace(commandLine.begin(), commandLine.end(), ' ', '_');
-    std::string outputFilename = commandLine + "_paths.csv";
-
-    // Write paths to a CSV file for plotting
-    std::ofstream outFile(outputFilename);
-    for (size_t i = 0; i < simulationsToPlot[0].size(); ++i) {
-        for (size_t j = 0; j < simulationsToPlot.size(); ++j) {
-            outFile << simulationsToPlot[j][i];
-            if (j < simulationsToPlot.size() - 1) {
-                outFile << ",";
-            }
-        }
-        outFile << "\n";
-    }
-    outFile.close();
-    std::cout << "Paths saved to " << outputFilename
-              << ". Use Python or another tool to visualize.\n";*/
 
     return 0;
 }
