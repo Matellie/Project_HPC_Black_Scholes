@@ -1,0 +1,377 @@
+\documentclass[12pt,a4paper]{report}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+% \usepackage{minted} % For code formatting (requires pygments)
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+
+\usepackage{tcolorbox}
+\tcbuselibrary{listingsutf8}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily, keywordstyle=\color{blue}, commentstyle=\color{gray}, stringstyle=\color{green!60!black}}
+
+
+
+% Page setup
+\geometry{a4paper, margin=1in}
+\setstretch{1}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Project Report}
+\fancyhead[R]{\thepage}
+
+% Title and Author
+\title{\textbf{Parallel Numerical Methods for Option Pricing: Monte Carlo and Finite Difference Approaches}}
+\author{
+    Mark BECKMANN \\ 5IF INSA Lyon
+    \and
+    Gabriel Canaple \\ 5IF INSA Lyon
+    \and
+    Clément Gillier \\ 5IF INSA Lyon
+    \and
+    Elie Tarassov \\ 5IF INSA Lyon
+}
+
+\date{November 2024}
+
+\newcommand{\thesistitle}{Parallel Numerical Methods for Option Pricing: Monte Carlo and Finite Difference Approaches}
+\newcommand{\myname}{
+    Mark BECKMANN, \\Gabriel CANAPLE, \\Clément GILLIER, \\Elie TARASSOV}
+\newcommand{\thesisdate}{November 2024}
+
+\begin{document}
+\pagenumbering{gobble} % Turns off page numbering
+\begin{titlepage}
+    \centering
+    \vspace*{4cm}
+     {\huge \textbf{\thesistitle} \par}
+      \vspace{2cm}
+     {\large  by \par}
+     \vspace{0.5cm}
+     {\large \textbf{\myname} \par}
+     \vspace{2cm}
+    \includegraphics[width=0.3\textwidth]{insa.png}\par
+    \vspace{1cm}
+    {\large \sc Department of Computer Science \par}
+
+     {\large \sc INSA Lyon  \par}
+
+     {\large \sc Villeurbanne, France \par}
+    \vspace{0.5cm}
+    {\large \sc \thesisdate \par}
+    \vspace{2cm}
+   
+\end{titlepage}
+
+
+
+% Begin Document
+%\begin{document}
+
+% Title Page
+%\maketitle
+%\newpage
+
+% Abstract
+\begin{abstract}
+
+This report explores numerical techniques for solving the Black-Scholes partial differential equation used to value European options. We focus on Monte Carlo simulations and finite difference methods, optimizing their computational performance with parallel processing techniques, leveraging multithreaded CPUs and CUDA-enabled GPUs. Benchmarking results highlight the efficiency gains in terms of execution time.
+In short, we make Option Pricing go BRMMMM!
+\end{abstract}
+\newpage
+
+% Table of Contents
+\tableofcontents
+\newpage
+
+% Introduction
+\chapter{Introduction}
+
+\section{Background}
+Financial derivatives are fundamental instruments in modern finance, allowing market participants to hedge risk, speculate on future price movements, or gain exposure to specific market conditions. Among the most well-known derivatives are \textbf{options}, which are contracts providing the buyer the right, but not the obligation, to buy or sell an underlying asset at a predetermined price (strike price) before or at a specified expiration date.
+
+Options are classified into two primary types based on their exercise conditions:
+\begin{itemize}
+    \item \textbf{European Options}: Can only be exercised at the expiration date.
+    \item \textbf{American Options}: Can be exercised at any time up to and including the expiration date.
+\end{itemize}
+
+Options can further be divided based on their position and payoff structure:
+\begin{itemize}
+    \item \textbf{Call Options}: Provide the right to purchase the underlying asset. The payoff for a call option is given by:
+    \[
+    \text{Payoff} = \max(S_T - K, 0)
+    \]
+    where \(S_T\) is the underlying asset price at maturity, and \(K\) is the strike price.
+    \item \textbf{Put Options}: Provide the right to sell the underlying asset. The payoff for a put option is:
+    \[
+    \text{Payoff} = \max(K - S_T, 0)
+    \]
+\end{itemize}
+
+Participants in the options market can take either a \textbf{long position} (buying the option) or a \textbf{short position} (selling the option), further expanding the strategies available to traders.
+
+\section{The Black-Scholes Model}
+The valuation of European options is often conducted using the \textbf{Black-Scholes model}, a seminal framework in financial mathematics. This model assumes that the price of the underlying asset follows a geometric Brownian motion, characterized by:
+\[
+dS = \mu S dt + \sigma S dW
+\]
+where \(S\) is the asset price, \(\mu\) is the drift rate, \(\sigma\) is the volatility, and \(W\) is a Wiener process. Under certain conditions, the model reduces the pricing problem to a partial differential equation (PDE), known as the \textbf{Black-Scholes equation}:
+\[
+\frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} + rS \frac{\partial V}{\partial S} - rV = 0
+\]
+Here, \(V(S,t)\) represents the option price as a function of the underlying asset price \(S\) and time \(t\), and \(r\) is the risk-free interest rate.
+
+\section{Problem Statement and Objectives}
+Accurate and efficient computation of option prices is critical for financial institutions, particularly when dealing with portfolios containing large numbers of derivatives or requiring real-time valuation. The Black-Scholes model, while mathematically elegant, can become computationally expensive when extended to simulate large-scale scenarios or multidimensional problems.
+
+In this project, we aim to \textbf{parallelize the computation of option pricing} using modern numerical techniques. Specifically, we focus on:
+\begin{itemize}
+    \item \textbf{Monte Carlo simulation}: For stochastic modeling of asset price paths.
+    \item \textbf{Finite difference methods}: For solving the Black-Scholes PDE.
+\end{itemize}
+
+Our goal is to optimize these numerical methods through parallel computation, leveraging both \textbf{multithreaded CPUs} and \textbf{general-purpose GPUs (GPGPUs)} via OpenMP and CUDA programming. This approach seeks to significantly reduce computation time, enabling fast and scalable pricing solutions.
+
+
+% Numerical Procedures
+\chapter{Numerical Procedures for Solving the Problem}
+
+\section{Overview}
+The valuation of options based on the Black-Scholes equation can be approached using various numerical methods. We focus on two widely used techniques: \textbf{Monte Carlo Simulation} and the \textbf{Finite Difference Method}. Each method has its own characteristics and is suited for specific types of problems in financial modeling.
+
+\subsection{Monte Carlo Simulation}
+Monte Carlo simulation is a stochastic method that leverages random sampling to model the behavior of complex systems. In the context of option pricing, it involves simulating multiple paths of the underlying asset price using the geometric Brownian motion model:
+\[
+S_{t+\Delta t} = S_t \exp \left( \left(r - \frac{\sigma^2}{2}\right)\Delta t + \sigma \sqrt{\Delta t} \, Z \right)
+\]
+where \(Z\) is a random variable sampled from a standard normal distribution. The simulated paths are then used to compute the option payoff, which is averaged and discounted to determine the option price.
+
+\subsection{Finite Difference Method}
+The finite difference method is a deterministic approach that discretizes the Black-Scholes PDE over a computational grid in both time and asset price dimensions. The PDE is then solved iteratively, using techniques such as explicit, implicit, or Crank-Nicolson schemes, to approximate the option price at each grid point.
+
+
+\section{Monte Carlo Simulation}
+
+\subsection{Mathematical Explanation}
+Monte Carlo simulation is a stochastic approach that employs random sampling to model complex systems. For option pricing, it relies on the risk-neutral valuation principle, which states that the value of a derivative can be determined by the discounted expected payoff in a risk-neutral world.
+
+The underlying asset price \( S \) is assumed to follow a geometric Brownian motion:
+\[
+dS = \mu S \, dt + \sigma S \, dz
+\]
+where \( \mu \) is the drift, \( \sigma \) is the volatility, and \( dz \) is a Wiener process.
+
+In a risk-neutral world, the drift \( \mu \) is replaced by \( r \), the risk-free interest rate, and the discrete-time approximation of the process becomes:
+\[
+S_{t+\Delta t} = S_t \exp \left( \left( r - \frac{\sigma^2}{2} \right) \Delta t + \sigma \sqrt{\Delta t} \, Z \right)
+\]
+where \( Z \sim \mathcal{N}(0, 1) \) is a standard normal random variable.
+
+The Monte Carlo simulation proceeds as follows:
+\begin{enumerate}
+    \item Simulate \( N \) paths for \( S \) over the life of the derivative.
+    \item Calculate the payoff \( \phi(S_T) \) for each path, where \( S_T \) is the terminal stock price.
+    \item Average the payoffs to estimate the expected value in a risk-neutral world:
+    \[
+    \mathbb{E}[ \phi(S_T) ] = \frac{1}{N} \sum_{i=1}^N \phi(S_T^{(i)})
+    \]
+    \item Discount this expected payoff at the risk-free rate to determine the option price:
+    \[
+    V = e^{-rT} \mathbb{E}[ \phi(S_T) ]
+    \]
+\end{enumerate}
+
+\subsection{Basic Implementation}
+Below is a minimal working example of Monte Carlo simulation in Python for pricing a European call option. The code uses basic loops and assumes \( S_0 \) as the initial stock price, \( K \) as the strike price, \( T \) as the time to maturity, \( r \) as the risk-free rate, and \( \sigma \) as the volatility.
+
+\begin{tcolorbox}[colback=green!5!white, colframe=green!75!black, title=Optimized Monte Carlo Simulation]
+\begin{lstlisting}[language=Python]
+import numpy as np
+
+# Parameters
+...
+
+# Simulate paths
+payoffs = []
+for _ in range(N):
+    S = S0
+    for _ in range(int(T / dt)):
+        Z = np.random.normal(0, 1)
+        S *= np.exp((r - 0.5 * sigma**2) * dt 
+            + sigma * np.sqrt(dt) * Z)
+    payoffs.append(max(S - K, 0))
+
+# Calculate option price
+option_price = np.exp(-r * T) * np.mean(payoffs)
+print(f"Option Price: {option_price}")
+\end{lstlisting}
+\end{tcolorbox}
+
+\subsection{Performance Profiling}
+Monte Carlo simulation can be optimized, especially for a large number of simulations \( N \). We use basic profiling tools to identify bottlenecks. The weaknesses of the standard code are :
+\begin{itemize}
+    \item ....
+    \item ....
+    \item ....
+\end{itemize}
+We can optimize our code through:
+\begin{itemize}
+    \item ....
+    \item ....
+    \item ....
+\end{itemize}
+
+\subsection{Optimized Code}
+The optimized version of the Monte Carlo simulation leverages ...
+
+\begin{lstlisting}[language=Python, caption={Optimized Monte Carlo Simulation}]
+# Vectorized implementation
+...
+\end{lstlisting}
+
+
+\section{Finite Difference Method}
+
+\subsection{Mathematical Derivation}
+The finite difference method is a numerical approach to solve partial differential equations such as the Black-Scholes equation. We begin by considering the Black-Scholes PDE:
+\[
+\frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} + rS \frac{\partial V}{\partial S} - rV = 0,
+\]
+where \( V \) is the option value, \( S \) is the underlying asset price, \( \sigma \) is volatility, and \( r \) is the risk-free rate.  
+
+We discretize the time domain into \( M \) intervals of size \( \Delta t \) and the asset price domain into \( N \) intervals of size \( \Delta S \). Using finite difference approximations, we derive three schemes:
+
+\begin{itemize}
+    \item \textbf{Explicit Scheme:} Uses a forward difference for time and central difference for space. This scheme is conditionally stable.
+    \item \textbf{Implicit Scheme:} Uses a backward difference for time, requiring solving a tridiagonal system at each time step. This scheme is unconditionally stable but computationally expensive.
+    \item \textbf{Crank-Nicolson Scheme:} Combines the explicit and implicit methods for second-order accuracy. It is unconditionally stable and often preferred in practice.
+\end{itemize}
+
+\subsubsection{Stability and Convergence Conditions}
+The stability of the explicit scheme depends on the size of \( \Delta t \) and \( \Delta S \). Specifically, the Courant-Friedrichs-Lewy (CFL) condition must be satisfied to ensure convergence:
+\[
+\Delta t \leq \frac{\Delta S^2}{2 \sigma^2 S^2}.
+\]
+Implicit and Crank-Nicolson methods, being unconditionally stable, do not require such constraints.
+
+\subsection{Basic Implementation}
+Below, we present the implementation of an explicit finite difference scheme for a European call option. 
+
+\begin{tcolorbox}[colframe=blue!50!black, colback=blue!5, title=Explicit Finite Difference Scheme]
+
+%\begin{lstlisting}[language=Python]
+\begin{verbatim}
+
+import numpy as np
+
+# Parameters
+S_max = 200  # Maximum stock price
+T = 1        # Maturity in years
+sigma = 0.2  # Volatility
+r = 0.05     # Risk-free rate
+K = 100      # Strike price
+M, N = 100, 100  # Time and price grid size
+dt, dS = T / M, S_max / N
+
+# Initialize grid and boundary conditions
+V = np.zeros((M+1, N+1))
+S = np.linspace(0, S_max, N+1)
+V[-1, :] = np.maximum(S - K, 0)  # Terminal payoff
+
+# Finite difference iteration
+for i in reversed(range(M)):
+    for j in range(1, N):
+        delta = (V[i+1, j+1] - V[i+1, j-1]) / (2 * dS)
+        gamma = (V[i+1, j+1] - 2 * V[i+1, j] + V[i+1, j-1]) / (dS**2)
+        V[i, j] = V[i+1, j] + dt * (0.5 * sigma**2 * S[j]**2 * gamma 
+                                    + r * S[j] * delta - r * V[i+1, j])
+
+# Extract option value at t=0
+option_price = V[0, int(N/2)]
+print("Option Price:", option_price)
+\end{verbatim}
+\end{tcolorbox}
+
+\subsubsection{Limitations}
+The explicit scheme requires a fine grid resolution to maintain stability and accuracy. Boundary conditions also need careful treatment, as poorly chosen boundaries can lead to errors in the solution.
+
+\subsection{Performance Profiling}
+We profile the above implementation to identify inefficiencies. Common challenges include:
+\begin{itemize}
+    \item \textbf{Memory usage:} The grid can become large for fine resolutions.
+    \item \textbf{Computation time:} Explicit schemes require a small time step for stability, increasing computation time.
+\end{itemize}
+
+\subsection{Optimized Code}
+We optimize the finite difference method by:
+\begin{itemize}
+    \item Using sparse matrix representations to reduce memory overhead.
+    \item Leveraging linear solvers for implicit and Crank-Nicolson schemes.
+\end{itemize}
+
+Below is an example of an optimized implementation using sparse matrices for the Crank-Nicolson scheme:
+
+\begin{tcolorbox}[colframe=green!50!black, colback=green!5, title=Crank-Nicolson with Sparse Matrices]
+\begin{verbatim}
+from scipy.sparse import diags
+from scipy.sparse.linalg import spsolve
+
+# Build tridiagonal matrix for Crank-Nicolson
+alpha = 0.5 * dt * (sigma**2 * S[1:-1]**2 / dS**2 - r * S[1:-1] / dS)
+beta = 1 + dt * (sigma**2 * S[1:-1]**2 / dS**2 + r)
+gamma = -0.5 * dt * (sigma**2 * S[1:-1]**2 / dS**2 + r * S[1:-1] / dS)
+
+diagonals = [alpha, beta, gamma]
+A = diags(diagonals, offsets=[-1, 0, 1]).tocsc()
+
+# Time-stepping with Crank-Nicolson
+for i in reversed(range(M)):
+    rhs = V[i+1, 1:-1]
+    V[i, 1:-1] = spsolve(A, rhs)
+
+print("Optimized Option Price:", V[0, int(N/2)])
+\end{verbatim}
+\end{tcolorbox}
+
+\subsubsection{Benchmarking}
+...
+
+
+% Discussion
+\chapter{Discussion}
+\section{Accuracy Comparison}
+Compare the results from Monte Carlo and finite difference methods.
+\section{Performance Comparison}
+Discuss execution times and computational efficiency.
+\section{Use Cases}
+Suggest scenarios where each method is most appropriate.
+
+% Conclusions and Future Work
+\chapter{Conclusions and Future Work}
+Summarize key findings and insights. Propose improvements or extensions for future work.
+
+% References
+\chapter*{References}
+\addcontentsline{toc}{chapter}{References}
+Use BibTeX or manually list all references here. Example:
+\begin{thebibliography}{9}
+\bibitem{black-scholes}
+F. Black and M. Scholes, ``The Pricing of Options and Corporate Liabilities,'' \textit{Journal of Political Economy}, vol. 81, no. 3, 1973.
+\end{thebibliography}
+
+% Appendices (Optional)
+\appendix
+\chapter{Appendix: Full Code Listings}
+Include complete code here if necessary.
+
+\end{document}
