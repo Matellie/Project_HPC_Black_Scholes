@@ -62,6 +62,37 @@ __global__ void generate_monte_carlo_bs(
         }
     }
 
+    if (id == 0) {
+        printf("Generate finished\n");
+    }
+}
+
+
+__global__ void reduce_monte_carlo_bs(long int nbSim, double* gen_result, double* red_result) {
+    int tid = threadIdx.x;
+    int bid = blockIdx.x;
+
+    int offset = nbSim / gridDim.x;
+
+    if (threadIdx.x + blockIdx.x * blockDim.x == 0) {
+        printf("Grid dim: %d\n", gridDim.x);
+    }
+
+    for (long int stride=1; stride<offset; stride *= 2) {
+        for (int i=(offset*bid+tid); i<(offset*(bid+1)); i += blockDim.x) {
+            if (i % (2*stride) == 0) {
+                //printf("bid:%d i:%d s:%ld result:%lf\n", bid, i, stride, gen_result[i + stride]);
+                gen_result[i] += gen_result[i + stride];
+            }
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0) {
+        //printf("%lf \n", gen_result[bid*offset]);
+        red_result[bid] = gen_result[bid*offset];
+    }
+
 }
 
 
@@ -79,16 +110,18 @@ double monteCarloBlackScholes(
     int lengthSim
 ) {
     const unsigned int threadsPerBlock = 256;
-    const unsigned int blockCount = 100;
+    const unsigned int blockCount = 256;
     curandStatePhilox4_32_10_t *devPHILOXStates;
     cudaMalloc((void **)&devPHILOXStates, threadsPerBlock*blockCount * sizeof(curandStatePhilox4_32_10_t));
 
-    long int nb_sim = 1000000000;
+    long int nb_sim = 16*16777216;
     int length_sim = 100;
-    double *result_gpu;
-    double* result_cpu = new double[nb_sim];
+    double *result_gen_gpu;
+    double *result_red_gpu;
+    double *result_cpu = new double[blockCount];
 
-    cudaMalloc(&result_gpu, nb_sim * sizeof(double));
+    cudaMalloc(&result_gen_gpu, nb_sim * sizeof(double));
+    cudaMalloc(&result_red_gpu, blockCount * sizeof(double));
 
     auto now = std::chrono::high_resolution_clock::now();
     long int nanos = (long int)std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
@@ -98,17 +131,18 @@ double monteCarloBlackScholes(
     printf("Kernel set up\n");
 
     generate_monte_carlo_bs<<<blockCount, threadsPerBlock>>>(
-        devPHILOXStates, nb_sim, length_sim, result_gpu, 101
+        devPHILOXStates, nb_sim, length_sim, result_gen_gpu, 101
     );
+    reduce_monte_carlo_bs<<<256, 256>>>(nb_sim, result_gen_gpu, result_red_gpu);
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double> elapsed = end - start;
     printf("Monte carlo generated in: %lf seconds\n", elapsed.count());
 
-    cudaMemcpy(result_cpu, result_gpu, nb_sim* sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(result_cpu, result_red_gpu, blockCount * sizeof(double), cudaMemcpyDeviceToHost);
     printf("Cuda memcopy done\n");
 
-    double sum = std::accumulate(result_cpu, result_cpu + nb_sim, 0.0);
+    double sum = std::accumulate(result_cpu, result_cpu + blockCount, 0.0);
     double mean = sum / nb_sim;
     printf("Mean computed\n");
 
