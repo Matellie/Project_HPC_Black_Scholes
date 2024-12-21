@@ -239,6 +239,67 @@ The optimized version of the Monte Carlo simulation leverages ...
 ...
 \end{lstlisting}
 
+\subsection{Cuda Optimization}
+To try to optimize the algorithm as much as possible, we are now going to push the code onto the graphics card using Cuda. Cuda (Compute Unified Device Architecture) is a programming model developed by NVIDIA for parallel computing on GPUs (Graphics Processing Units). The idea is to move the intensive calculations that take place on the CPU to the GPU. As the GPU is equipped with several SMs (Scalar Multiprocessors), themselves capable of executing several hundred threads in parallel, the use of Cuda enables intensive parallelization of calculations. We are going to use this computing power to parallelize the execution of all the simulations. 
+
+To do this, we are going to create two Cuda kernels. The first is used to initialize our random number generator. The second assigns one or more simulations to be calculated for each thread. The result of each simulation is then stored in global memory and sent back to the CPU where the final mean can be calculated. 
+
+
+\begin{tcolorbox}[colback=green!5!white, colframe=green!75!black, title=Cuda random number generator]
+\begin{lstlisting}[language=C++]
+__global__ void setup_kernel(
+    curandStatePhilox4_32_10_t *state, 
+    long int random_thing
+) {
+    int id = threadIdx.x + blockIdx.x * blockDim.x;
+    curand_init((1234 + 
+        random_thing * threadIdx.x * 
+        blockIdx.x * blockDim.x)%14569, 
+        id, 0, &state[id]
+    );
+}
+\end{lstlisting}
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=blue!5!white, colframe=blue!50!black, title=Cuda compute simulation]
+\begin{lstlisting}[language=C++]
+__global__ void generate_monte_carlo_bs(
+    curandStatePhilox4_32_10_t *state,
+    long int nbSim,
+    int lengthSim,
+    double* result,
+    double K,
+    double S0 = 100.0,  // Initial stock price
+    double T = 1.0,     // Time to maturity (1 year)
+    double r = 0.05,    // Risk-free rate (5%)
+    double sigma = 0.2  // Volatility (20%)
+) {
+    int id = threadIdx.x + blockIdx.x * blockDim.x;
+    curandStatePhilox4_32_10_t localState = state[id];
+
+    double dt = T / lengthSim;
+    double drift = (r - 0.5 * sigma * sigma) * dt;
+    double diffusion = sigma * sqrt(dt);
+
+    for (int i=id; i<nbSim; i+=blockDim.x*gridDim.x) {
+        double ST = S0;
+        for (int j=0; j<lengthSim; ++j) {
+            double r = curand_normal_double(&localState);
+            ST *= exp(drift + diffusion * r);
+            state[id] = localState;
+        }
+        if (ST > K) {
+            result[i] = ST - K;
+        } else {
+            result[i] = 0;
+        }
+    }
+
+}
+\end{lstlisting}
+\end{tcolorbox}
+\subsubsection{Benchmarking}
+...
 
 \section{Finite Difference Method}
 
