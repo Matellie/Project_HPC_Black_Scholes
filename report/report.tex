@@ -160,82 +160,15 @@ where \(Z\) is a random variable sampled from a standard normal distribution. Th
 The finite difference method is a deterministic approach that discretizes the Black-Scholes PDE over a computational grid in both time and asset price dimensions. The PDE is then solved iteratively, using techniques such as explicit, implicit, or Crank-Nicolson schemes, to approximate the option price at each grid point.
 
 
-\section{Monte Carlo Simulation}
+\section{Monte Carlo Simulation in C++, with OpenMP and CUDA}
 
-\subsection{Mathematical Explanation}
-Monte Carlo simulation is a stochastic approach that employs random sampling to model complex systems. For option pricing, it relies on the risk-neutral valuation principle, which states that the value of a derivative can be determined by the discounted expected payoff in a risk-neutral world.
-
-The underlying asset price \( S \) is assumed to follow a geometric Brownian motion:
-\[
-dS = \mu S \, dt + \sigma S \, dz
-\]
-where \( \mu \) is the drift, \( \sigma \) is the volatility, and \( dz \) is a Wiener process.
-
-In a risk-neutral world, the drift \( \mu \) is replaced by \( r \), the risk-free interest rate, and the discrete-time approximation of the process becomes:
-\[
-S_{t+\Delta t} = S_t \exp \left( \left( r - \frac{\sigma^2}{2} \right) \Delta t + \sigma \sqrt{\Delta t} \, Z \right)
-\]
-where \( Z \sim \mathcal{N}(0, 1) \) is a standard normal random variable.
-
-The Monte Carlo simulation proceeds as follows:
-\begin{enumerate}
-    \item Simulate \( N \) paths for \( S \) over the life of the derivative.
-    \item Calculate the payoff \( \phi(S_T) \) for each path, where \( S_T \) is the terminal stock price.
-    \item Average the payoffs to estimate the expected value in a risk-neutral world:
-    \[
-    \mathbb{E}[ \phi(S_T) ] = \frac{1}{N} \sum_{i=1}^N \phi(S_T^{(i)})
-    \]
-    \item Discount this expected payoff at the risk-free rate to determine the option price:
-    \[
-    V = e^{-rT} \mathbb{E}[ \phi(S_T) ]
-    \]
-\end{enumerate}
-
-\subsection{Basic Implementation}
-Below is a minimal working example of Monte Carlo simulation in Python for pricing a European call option. The code uses basic loops and assumes \( S_0 \) as the initial stock price, \( K \) as the strike price, \( T \) as the time to maturity, \( r \) as the risk-free rate, and \( \sigma \) as the volatility.
-
-\begin{tcolorbox}[colback=green!5!white, colframe=green!75!black, title=Optimized Monte Carlo Simulation]
-\begin{lstlisting}[language=Python]
-import numpy as np
-
-# Parameters
+\subsection{Starting Point and Performance Profiling}
 ...
 
-# Simulate paths
-payoffs = []
-for _ in range(N):
-    S = S0
-    for _ in range(int(T / dt)):
-        Z = np.random.normal(0, 1)
-        S *= np.exp((r - 0.5 * sigma**2) * dt 
-            + sigma * np.sqrt(dt) * Z)
-    payoffs.append(max(S - K, 0))
-
-# Calculate option price
-option_price = np.exp(-r * T) * np.mean(payoffs)
-print(f"Option Price: {option_price}")
-\end{lstlisting}
-\end{tcolorbox}
-
-\subsection{Performance Profiling}
-Monte Carlo simulation can be optimized, especially for a large number of simulations \( N \). We use basic profiling tools to identify bottlenecks. The weaknesses of the standard code are :
-\begin{itemize}
-    \item ....
-    \item ....
-    \item ....
-\end{itemize}
-We can optimize our code through:
-\begin{itemize}
-    \item ....
-    \item ....
-    \item ....
-\end{itemize}
-
-\subsection{Optimized Code}
-The optimized version of the Monte Carlo simulation leverages ...
+\subsection{Possible Optimizations}
+...
 
 \begin{lstlisting}[language=Python, caption={Optimized Monte Carlo Simulation}]
-# Vectorized implementation
 ...
 \end{lstlisting}
 
@@ -298,32 +231,92 @@ __global__ void generate_monte_carlo_bs(
 }
 \end{lstlisting}
 \end{tcolorbox}
+
 \subsubsection{Benchmarking}
 ...
 
-\section{Finite Difference Method}
 
-\subsection{Mathematical Derivation}
-The finite difference method is a numerical approach to solve partial differential equations such as the Black-Scholes equation. We begin by considering the Black-Scholes PDE:
-\[
-\frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} + rS \frac{\partial V}{\partial S} - rV = 0,
-\]
-where \( V \) is the option value, \( S \) is the underlying asset price, \( \sigma \) is volatility, and \( r \) is the risk-free rate.  
 
-We discretize the time domain into \( M \) intervals of size \( \Delta t \) and the asset price domain into \( N \) intervals of size \( \Delta S \). Using finite difference approximations, we derive three schemes:
+\section{Python Implementation of Monte Carlo Simulation}
+
+We evaluate the performance of several optimization approaches for computing the Black-Scholes equation via Monte Carlo simulations:
 
 \begin{itemize}
-    \item \textbf{Explicit Scheme:} Uses a forward difference for time and central difference for space. This scheme is conditionally stable.
-    \item \textbf{Implicit Scheme:} Uses a backward difference for time, requiring solving a tridiagonal system at each time step. This scheme is unconditionally stable but computationally expensive.
-    \item \textbf{Crank-Nicolson Scheme:} Combines the explicit and implicit methods for second-order accuracy. It is unconditionally stable and often preferred in practice.
+    \item \textbf{Classical Python} (baseline)
+    \item \textbf{Vectorization with Numpy}
+    \item \textbf{Multiprocessing and Threading}
+    \item \textbf{Numba for Just-In-Time Compilation}
+    \item \textbf{Cython}
 \end{itemize}
 
-\subsubsection{Stability and Convergence Conditions}
-The stability of the explicit scheme depends on the size of \( \Delta t \) and \( \Delta S \). Specifically, the Courant-Friedrichs-Lewy (CFL) condition must be satisfied to ensure convergence:
-\[
-\Delta t \leq \frac{\Delta S^2}{2 \sigma^2 S^2}.
-\]
-Implicit and Crank-Nicolson methods, being unconditionally stable, do not require such constraints.
+Our aim is to analyze and compare the performance (execution time) of these methods and understand how different techniques can address the computational inefficiencies of the classical Python approach.
+
+\subsection{Methodology}
+
+The primary task is to simulate the evolution of a stock price using the Black-Scholes model over multiple paths, then compute the payoff for each path (for a European call option) and finally estimate the option price as the discounted average of these payoffs.
+
+\subsubsection{Classical Python}
+
+The classical Python implementation uses nested loops to simulate each path and calculate the corresponding payoff. Each path generates random samples from the normal distribution via \texttt{np.random.normal(0, 1)}. While this approach works correctly, it is inefficient, especially for a large number of paths and simulations due to the repeated use of random number generation and the for-loop structure.
+
+\textbf{Hypothesis for Improvement}: The execution time can be reduced by leveraging more efficient tools for numerical computation and parallelism.
+
+\subsubsection{Optimized Approaches}
+
+\paragraph{Vectorization with Numpy}  
+The vectorized approach eliminates the nested loop by using NumPy's vectorized operations to generate all random variables at once and compute the price paths in a single step. The use of \texttt{np.cumsum} calculates the cumulative sum of the logarithmic returns across all paths, improving efficiency.
+
+\textbf{Hypothesis for Improvement}: Vectorization should significantly reduce execution time by removing explicit loops and leveraging optimized C-based implementations of NumPy operations.
+
+\paragraph{Multiprocessing}  
+Multiprocessing leverages multiple CPU cores to parallelize path simulation across multiple processes. Each process runs the \texttt{simulate\_path} function independently for a subset of the total paths.
+
+\textbf{Hypothesis for Improvement}: Parallelization should improve performance by distributing the workload across multiple cores, potentially reducing execution time for large simulations.
+
+\paragraph{Numba for Just-In-Time Compilation}  
+Numba is used to compile the function just-in-time (JIT), optimizing loops and array operations for performance. The \texttt{@njit(parallel=True)} decorator enables parallel execution within the loop, improving execution speed on multicore machines.
+
+\textbf{Hypothesis for Improvement}: JIT compilation should significantly speed up the computation by converting Python code into machine code, removing the overhead of interpreted execution. Parallelization within Numba will also distribute the workload efficiently.
+
+\paragraph{Cython}  
+Cython is used to compile the function into C, offering faster execution by leveraging C-based performance. Mathematical operations are explicitly optimized using the C math library for functions like \texttt{exp} and \texttt{sqrt}.
+
+\textbf{Hypothesis for Improvement}: Cython should provide a substantial speedup by compiling Python code to C, reducing overhead and increasing efficiency for numerical operations.
+
+\subsection{Results}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Method} & \textbf{Mean Option Price} & \textbf{Execution Time (seconds)} \\ \hline
+Classic & 10.4933 & 5.4152 \\ \hline
+Vectorized & 10.4690 & 0.0419 \\ \hline
+Multithreading & 10.5132 & 6.4855 \\ \hline
+Multiprocessing & 10.4507 & 4.4074 \\ \hline
+Numba & 10.4272 & 0.2789 \\ \hline
+Cython & 21.0213 & 0.0090 \\ \hline
+\end{tabular}
+\caption{Performance Comparison of Optimization Techniques}
+\end{table}
+
+\subsection{Discussion and Interpretation}
+
+\begin{itemize}
+    \item \textbf{Classical Python}: The classical method has high execution times due to inefficient looping and repeated random number generation for each path.
+    \item \textbf{Vectorized Approach}: The vectorized approach significantly improves execution time by removing explicit loops and utilizing optimized NumPy functions. However, the mean option price is slightly different, likely due to how the random normal samples are handled across paths.
+    \item \textbf{Multithreading and Multiprocessing}: While both approaches allow parallel computation of paths, the overhead from managing threads/processes limits their effectiveness in this case. \textbf{Multithreading} resulted in a slightly higher execution time compared to multiprocessing, likely due to the Global Interpreter Lock (GIL) in CPython.
+    \item \textbf{Numba}: Numba significantly reduced execution time and showed reasonable accuracy, although the mean option price differed slightly from the others. The benefit of JIT compilation and parallel execution was evident, particularly for larger numbers of paths.
+    \item \textbf{Cython}: Cython yielded the fastest execution time and the highest option price, which suggests that the computation is highly sensitive to the optimization at the C level. The accuracy of the price might be affected by the precision of the floating-point calculations in C, which could differ slightly from the Python-based methods.
+\end{itemize}
+
+\subsection{Conclusion}
+
+Optimizing Monte Carlo simulations for Black-Scholes option pricing can yield significant improvements in execution time. Vectorization with NumPy, Numba's JIT compilation, and Cython offer the best performance, with Cython providing the fastest results at the cost of slight deviations in the option price. The choice of optimization depends on the trade-off between execution time and result accuracy, with Cython being the optimal choice for speed and Numba offering a good balance between speed and flexibility.
+
+
+
+\section{Finite Difference Method}
 
 \subsection{Basic Implementation}
 Below, we present the implementation of an explicit finite difference scheme for a European call option. 
@@ -408,31 +401,88 @@ print("Optimized Option Price:", V[0, int(N/2)])
 ...
 
 
-% Discussion
-\chapter{Discussion}
-\section{Accuracy Comparison}
-Compare the results from Monte Carlo and finite difference methods.
-\section{Performance Comparison}
-Discuss execution times and computational efficiency.
-\section{Use Cases}
-Suggest scenarios where each method is most appropriate.
-
 % Conclusions and Future Work
 \chapter{Conclusions and Future Work}
 Summarize key findings and insights. Propose improvements or extensions for future work.
 
+
 % References
-\chapter*{References}
-\addcontentsline{toc}{chapter}{References}
-Use BibTeX or manually list all references here. Example:
 \begin{thebibliography}{9}
-\bibitem{black-scholes}
-F. Black and M. Scholes, ``The Pricing of Options and Corporate Liabilities,'' \textit{Journal of Political Economy}, vol. 81, no. 3, 1973.
+
+\bibitem{hull}
+J. Hull, \textit{Options, Futures, and Other Derivatives}, 10th ed. Pearson Education, 2017.
+
+\bibitem{panova2022}
+E. Panova, V. Volokitin, A. Gorshkov, and I. Meyerov, ``Black-Scholes Option Pricing on Intel CPUs and GPUs: Implementation on SYCL and Optimization Techniques,'' in \textit{Supercomputing}, Springer International Publishing, 2022, pp. 48–62. DOI: \url{10.1007/978-3-031-22941-1_4}.
+
+\bibitem{laszlo2015}
+E. László, Z. Nagy, M. B. Giles, I. Z. Reguly, J. Appleyard, and P. Szolgay, ``Analysis of Parallel Processor Architectures for the Solution of the Black-Scholes PDE,'' in \textit{Proceedings of the 2015 IEEE International Symposium on Circuits and Systems (ISCAS)}, May 2015, pp. 1977-1980. DOI: \url{10.1109/ISCAS.2015.7169062}.
+
+\bibitem{cvetanoska2012}
+V. Cvetanoska and T. Stojanovski, ``Using High Performance Computing and Monte Carlo Simulation for Pricing American Options,'' arXiv:1205.0106 [cs.DC], 2012. Available at: \url{https://arxiv.org/abs/1205.0106}.
+
 \end{thebibliography}
+
+
 
 % Appendices (Optional)
 \appendix
-\chapter{Appendix: Full Code Listings}
-Include complete code here if necessary.
+\chapter{Appendix: Mathematics and Algorithms}
+
+\section{Monte Carlo Simulation}
+
+Monte Carlo simulation is a stochastic approach that employs random sampling to model complex systems. For option pricing, it relies on the risk-neutral valuation principle, which states that the value of a derivative can be determined by the discounted expected payoff in a risk-neutral world.
+
+The underlying asset price \( S \) is assumed to follow a geometric Brownian motion:
+\[
+dS = \mu S \, dt + \sigma S \, dz
+\]
+where \( \mu \) is the drift, \( \sigma \) is the volatility, and \( dz \) is a Wiener process.
+
+In a risk-neutral world, the drift \( \mu \) is replaced by \( r \), the risk-free interest rate, and the discrete-time approximation of the process becomes:
+\[
+S_{t+\Delta t} = S_t \exp \left( \left( r - \frac{\sigma^2}{2} \right) \Delta t + \sigma \sqrt{\Delta t} \, Z \right)
+\]
+where \( Z \sim \mathcal{N}(0, 1) \) is a standard normal random variable.
+
+The Monte Carlo simulation proceeds as follows:
+\begin{enumerate}
+    \item Simulate \( N \) paths for \( S \) over the life of the derivative.
+    \item Calculate the payoff \( \phi(S_T) \) for each path, where \( S_T \) is the terminal stock price.
+    \item Average the payoffs to estimate the expected value in a risk-neutral world:
+    \[
+    \mathbb{E}[ \phi(S_T) ] = \frac{1}{N} \sum_{i=1}^N \phi(S_T^{(i)})
+    \]
+    \item Discount this expected payoff at the risk-free rate to determine the option price:
+    \[
+    V = e^{-rT} \mathbb{E}[ \phi(S_T) ]
+    \]
+\end{enumerate}
+
+\section{Finite Difference Method}
+
+The finite difference method is a numerical approach to solve partial differential equations such as the Black-Scholes equation. We begin by considering the Black-Scholes PDE:
+\[
+\frac{\partial V}{\partial t} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} + rS \frac{\partial V}{\partial S} - rV = 0,
+\]
+where \( V \) is the option value, \( S \) is the underlying asset price, \( \sigma \) is volatility, and \( r \) is the risk-free rate.  
+
+We discretize the time domain into \( M \) intervals of size \( \Delta t \) and the asset price domain into \( N \) intervals of size \( \Delta S \). Using finite difference approximations, we derive three schemes:
+
+\begin{itemize}
+    \item \textbf{Explicit Scheme:} Uses a forward difference for time and central difference for space. This scheme is conditionally stable.
+    \item \textbf{Implicit Scheme:} Uses a backward difference for time, requiring solving a tridiagonal system at each time step. This scheme is unconditionally stable but computationally expensive.
+    \item \textbf{Crank-Nicolson Scheme:} Combines the explicit and implicit methods for second-order accuracy. It is unconditionally stable and often preferred in practice.
+\end{itemize}
+
+\subsection{Stability and Convergence Conditions}
+The stability of the explicit scheme depends on the size of \( \Delta t \) and \( \Delta S \). Specifically, the Courant-Friedrichs-Lewy (CFL) condition must be satisfied to ensure convergence:
+\[
+\Delta t \leq \frac{\Delta S^2}{2 \sigma^2 S^2}.
+\]
+Implicit and Crank-Nicolson methods, being unconditionally stable, do not require such constraints.
+
+
+
 
 \end{document}
