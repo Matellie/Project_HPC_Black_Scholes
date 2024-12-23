@@ -26,27 +26,27 @@ all: $(CPP_EXECUTABLES) $(CU_EXECUTABLES)
 
 # Rule to build C++ executables
 $(BUILD_DIR)/%: $(BUILD_DIR)/%.o
-    $(CXX) $(CXXFLAGS) -o $@ $<
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
 # Rule to compile C++ source files
 $(BUILD_DIR)/%.o: $(SRC_OMP_DIR)/%.cpp | $(BUILD_DIR)
-    $(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Rule to build CUDA executables
 $(BUILD_DIR)/%: $(BUILD_DIR)/%.cu.o
-    $(CUDA_COMPILER) $(CUDA_FLAGS) -o $@ $<
+	$(CUDA_COMPILER) $(CUDA_FLAGS) -o $@ $<
 
 # Rule to compile CUDA source files
 $(BUILD_DIR)/%.cu.o: $(SRC_CUDA_DIR)/%.cu | $(BUILD_DIR)
-    $(CUDA_COMPILER) $(CUDA_FLAGS) -c -o $@ $<
+	$(CUDA_COMPILER) $(CUDA_FLAGS) -c -o $@ $<
 
 # Create build directory if it doesn't exist
 $(BUILD_DIR):
-    mkdir -p $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)
 
 # Clean up build artifacts
 clean:
-    rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 # Phony targets
 .PHONY: all clean
