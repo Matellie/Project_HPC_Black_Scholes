@@ -94,6 +94,11 @@ monte_carlo_cpu_openmp_16threads,1000000.0,252,0.723832
 monte_carlo_cpu_openmp_16threads,1000000.0,252,0.719688
 monte_carlo_cpu_openmp_16threads,1000000.0,252,0.707742
 monte_carlo_cpu_openmp_16threads,1000000.0,252,0.721258
+monte_carlo_cpu_openmp_16threads,2000000.0,252,1.65893
+monte_carlo_cpu_openmp_16threads,2000000.0,252,1.62784
+monte_carlo_cpu_openmp_16threads,2000000.0,252,1.59491
+monte_carlo_cpu_openmp_16threads,2000000.0,252,1.55393
+monte_carlo_cpu_openmp_16threads,2000000.0,252,1.61006
 monte_carlo_cpu_openmp_20threads,1000000.0,252,0.646433
 monte_carlo_cpu_openmp_20threads,1000000.0,252,0.640515
 monte_carlo_cpu_openmp_20threads,1000000.0,252,0.643371
@@ -124,3 +129,13 @@ monte_carlo_cpu_openmp_20threads,2000000.0,252,1.29908
 monte_carlo_cpu_openmp_20threads,2000000.0,252,1.28212
 monte_carlo_cpu_openmp_20threads,2000000.0,252,1.30172
 monte_carlo_cpu_openmp_20threads,2000000.0,252,1.29312
+monte_carlo_cpu_openmp_16threads,4000000.0,252,3.02833
+monte_carlo_cpu_openmp_16threads,4000000.0,252,3.02231
+monte_carlo_cpu_openmp_16threads,4000000.0,252,3.04503
+monte_carlo_cpu_openmp_16threads,4000000.0,252,3.02338
+monte_carlo_cpu_openmp_16threads,4000000.0,252,3.04785
+monte_carlo_cpu_openmp_16threads,10000000.0,252,7.23209
+monte_carlo_cpu_openmp_16threads,10000000.0,252,7.38288
+monte_carlo_cpu_openmp_16threads,10000000.0,252,7.32112
+monte_carlo_cpu_openmp_16threads,10000000.0,252,7.35042
+monte_carlo_cpu_openmp_16threads,10000000.0,252,7.47578
